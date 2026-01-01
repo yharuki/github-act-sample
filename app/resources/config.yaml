@@ -1,0 +1,214 @@
+common: &common
+  col_name:
+    mark: "MARK"
+    lv1: "1"
+    lv2: "2"
+    lv3: "3"
+    lv4: "4"
+    lv5: "5"
+    lv6: "6"
+    number: "番号"
+    environment: "環境"
+    precondition: "準備"
+    steps: "手順"
+    expected: "確認"
+    notes: "備考"
+  col_name_res_area:
+    test_intention: "実施判定"
+    test_result: "実施結果"
+    test_ver: "実施ver"
+    test_env: "実施環境"
+    test_date: "実施日"
+    test_operator: "実施者"
+    test_notes: "実施備考"
+    test_problems: "問題処置"
+
+md:
+  mark_for_read:
+    title: "^=+"
+    test_env_frame: "^`{3}\\s*$"
+    lv1: "^# "
+    lv2: "^## "
+    lv3: "^### "
+    lv4: "^#### "
+    lv5: "^##### "
+    lv6: "^###### "
+    environment: "^\\+ "
+    precondition: "^\\* "
+    steps: "^[0-9]+. "
+    expected: "^- "
+    notes: "^- \\[[x ]\\] "
+    caption: "^> "    # Excel変換対象外
+    separator: "^---" # Excel変換対象外
+  mark_for_write:
+    title: "="
+    test_env_frame: "```"
+    test_rows:
+      lv1: "# "
+      lv2: "## "
+      lv3: "### "
+      lv4: "#### "
+      lv5: "##### "
+      lv6: "###### "
+      environment_caption: "> 環境"
+      environment: "+ "
+      precondition_caption: "> 準備"
+      precondition: "* "
+      steps_caption: "> 手順"
+      steps: "1. "
+      expected_caption: "> 確認"
+      expected: "- "
+      notes_caption: "> 備考"
+      notes: "- [ ] "
+    caption: "> "
+    separator: "---"
+
+  aux_mark:
+    # `nested` を編集した場合 `markdown_operator.py` の編集も必要
+    # Welcome the challenge of code refactoring!
+    nested:
+      points_list_lv:
+        - "    [-\\+\\*] "
+        - "        [-\\+\\*] "
+        - "            [-\\+\\*] "
+      number_list_lv:
+        - "    [0-9]+. "
+        - "        [0-9]+. "
+        - "            [0-9]+. "
+    nested_list_indent_lv:
+      - 2
+      - 4
+      - 6
+
+  test_intention:
+    omission_word: "省略" # 備考欄のチェックボックス(Markdown)が `checked` の場合、省略項目とする
+    inclusion_word: "実施"
+
+  <<: *common
+
+excel:
+  template_file_name: "st_template.xlsm" # 元となるテンプレートファイル名
+  def_offset_row: 7 # 先頭の空行数 （集計表、及び概要を記載するための領域）
+  font: "MS ゴシック"
+
+  # テスト観点列をどこまでマルチインデックス化（マージ）の対象とするか
+  # ※ マルチインデックス化の機能は、運用上のため将来的に削除したい
+  index:
+    lv1: true
+    lv2: true
+    lv3: true
+    lv4: true
+    lv5: true
+    lv6: true
+
+  # 出力する列の指定（上記インデックス列以外で）
+  output:
+    mark: false
+    number: true
+    environment: true
+    precondition: true
+    steps: true
+    expected: true
+    notes: true
+
+  # 行高
+  height:
+    header: 58
+
+  # 列幅
+  width:
+    lv1: 1.5
+    lv2: 1.5
+    lv3: 1.5
+    lv4: 1.5
+    lv5: 1.5
+    lv6: 1.5
+    number: 3
+    environment: 40
+    precondition: 40
+    steps: 50
+    expected: 40
+    notes: 30
+  width_res_area:
+    test_intention: 6
+    test_result: 8
+    test_ver: 8
+    test_env: 8
+    test_date: 10
+    test_operator: 10
+    test_notes: 10
+    test_problems: 10
+
+  # 各列の水平方向位置
+  horizontal:
+    lv1: "left"
+    lv2: "left"
+    lv3: "left"
+    lv4: "left"
+    lv5: "left"
+    lv6: "left"
+    number: "center"
+    environment: "left"
+    precondition: "left"
+    steps: "left"
+    expected: "left"
+    notes: "left"
+  horizontal_res_area:
+    test_intention: "center"
+    test_result: "center"
+    test_ver: "center"
+    test_env: "center"
+    test_date: "center"
+    test_operator: "center"
+    test_notes: "center"
+    test_problems: "center"
+
+  # 各列の垂直方向位置
+  vertical:
+    lv1: "top"
+    lv2: "top"
+    lv3: "top"
+    lv4: "top"
+    lv5: "top"
+    lv6: "top"
+    number: "center"
+    environment: "top"
+    precondition: "top"
+    steps: "top"
+    expected: "top"
+    notes: "top"
+  vertical_res_area:
+    test_intention: "top"
+    test_result: "top"
+    test_ver: "top"
+    test_env: "top"
+    test_date: "top"
+    test_operator: "top"
+    test_notes: "top"
+    test_problems: "top"
+
+  # 見出し行の色設定
+  header_color:
+    lv1: "FF99CC"
+    lv2: "FFCC99"
+    lv3: "FFFF99"
+    lv4: "CCFFCC"
+    lv5: "CCFFFF"
+    lv6: "99CCFF"
+    number: "D9D9D9"
+    environment: "D9D9D9"
+    precondition: "D9D9D9"
+    steps: "D9D9D9"
+    expected: "D9D9D9"
+    notes: "D9D9D9"
+  header_color_res_area:
+    test_intention: "CCFFFF"
+    test_result: "99CCFF"
+    test_ver: "99CCFF"
+    test_env: "99CCFF"
+    test_date: "99CCFF"
+    test_operator: "99CCFF"
+    test_notes: "99CCFF"
+    test_problems: "99CCFF"
+
+  <<: *common
