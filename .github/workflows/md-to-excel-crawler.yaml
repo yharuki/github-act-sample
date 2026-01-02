@@ -1,0 +1,106 @@
+# 概要: このワークフローはプルリク時に変更されたマークダウンファイルを検出し、
+# Dockerコンテナを使用してマークダウンをExcelに変換する処理を実行します。
+# 検出→コンテナビルド→変換処理の流れで、変換結果は外部に保存されません。
+name: md-to-excel-crawler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'app/markdown/**'
+  # schedule:
+  #   - cron: "0 * * * *"
+
+jobs:
+  welcome-comment:
+    runs-on: self-hosted
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Debug Environment
+        run: |
+          echo "--- Runner Environment Variables (Job Start) ---"
+          env | sort
+          echo "------------------------------------------------"
+          echo "Attempting curl to GHE (HTTP - no proxy expected for GHE):"
+          curl -v http://ghe.nanao.co.jp/api/v3/zen
+          echo "------------------------------------------------"
+
+      - name: Add welcome comment
+        uses: actions/github-script@v6
+        env:
+          HTTPS_PROXY: '' # HTTPS_PROXYを明示的に空にする
+          GITHUB_API_URL: 'http://ghe.nanao.co.jp/api/v3'
+          # HTTP_PROXY, NO_PROXY, no_proxy はランナーの .env から引き継がれることを期待
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log(`--- Script Environment Variables ---`);
+            console.log(`GITHUB_API_URL: ${process.env.GITHUB_API_URL}`);
+            console.log(`HTTP_PROXY: ${process.env.HTTP_PROXY}`); // Should be from runner's .env
+            console.log(`HTTPS_PROXY: ${process.env.HTTPS_PROXY}`); // Should be empty
+            console.log(`NO_PROXY: ${process.env.NO_PROXY}`); // Should be from runner's .env
+            console.log(`no_proxy: ${process.env.no_proxy}`); // Should be from runner's .env
+            console.log(`----------------------------------`);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Welcome! プルリクエストをありがとうございます！'
+            })
+            
+  core-crawler:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: List directory contents
+        run: ls -a
+      - name: Remove markdown2excel image
+        run: |
+          IMAGE_NAME="markdown2excel"
+          IMAGE_TAG="latest"
+
+          # Confirm whether the Docker image exists
+          IMAGE_EXISTS=$(docker images -q ${IMAGE_NAME}:${IMAGE_TAG})
+
+          # If the image exists, remove it
+          if [ -n "${IMAGE_EXISTS}" ]; then
+            echo "Image ${IMAGE_NAME}:${IMAGE_TAG} exists. Removing..."
+            docker rmi ${IMAGE_NAME}:${IMAGE_TAG}
+            if [ $? -eq 0 ]; then
+              echo "Image ${IMAGE_NAME}:${IMAGE_TAG} has been removed successfully."
+            else
+              echo "Failed to remove image ${IMAGE_NAME}:${IMAGE_TAG}."
+            fi
+          else
+            echo "Image ${IMAGE_NAME}:${IMAGE_TAG} does not exist."
+          fi
+      - name: Build docker image
+        run: docker build --no-cache -t markdown2excel .
+      - name: Copy directory
+        run: cp -r ./app/markdown ./markdown
+      - name: Get changed markdown files
+        id: changed-files
+        run: |
+          # Get list of changed markdown files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- './app/markdown/*.md' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No markdown files changed"
+            echo "files=" > $GITHUB_OUTPUT
+          else
+            echo "Changed markdown files:"
+            echo "$CHANGED_FILES"
+            echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          fi
+      - name: Run markdown2excel container for changed files
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          echo "${{ steps.changed-files.outputs.files }}" | while read -r file; do
+            if [ -n "$file" ]; then
+              echo "Processing $file"
+              FILENAME=$(basename "$file")
+              docker run --rm markdown2excel python MdToExcel.py "./markdown/$FILENAME"
+            fi
+          done
